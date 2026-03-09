@@ -1,5 +1,10 @@
 ﻿const admin = require("firebase-admin");
-const serviceAccount = require("../serviceAccountKey.json");
+
+// In production, use the FIREBASE_SERVICE_ACCOUNT env var (JSON string).
+// In development, fall back to the local serviceAccountKey.json file.
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+  : require("../serviceAccountKey.json");
 
 // Prevent re-initialization on hot-reload
 if (!admin.apps.length) {
