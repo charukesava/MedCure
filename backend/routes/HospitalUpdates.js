@@ -1,48 +1,47 @@
-// backend/routes/hospitalUpdates.js
 const express = require("express");
 const router = express.Router();
+const { v4: uuidv4 } = require("uuid");
+const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
-// In-memory storage for hospital updates (reset when server restarts)
-let updates = [
-  {
-    id: 1,
-    hospitalName: "AIIMS, New Delhi",
-    location: "New Delhi",
-    title: "New OPD Timings",
-    description: "OPD timings updated from 8:00 AM to 2:00 PM on weekdays.",
-    date: new Date().toISOString().slice(0, 10),
-  },
-];
+// In-memory store (persists for the lifetime of the server process)
+let updates = [];
 
-// GET: list all updates
+// ─── GET all updates (public) ────────────────────────────────────────────────
 router.get("/", (req, res) => {
-  res.json(updates);
+  // Return newest first
+  res.json([...updates].reverse());
 });
 
-// POST: create new update (used by AdminUpdates.js)
-router.post("/", (req, res) => {
-  const { hospitalName, location, title, description, email } = req.body || {};
+// ─── POST a new update (admin only) ─────────────────────────────────────────
+router.post("/", verifyToken, verifyAdmin, (req, res) => {
+  const { email, hospitalName, location, title, description } = req.body;
 
   if (!hospitalName || !location || !title || !description) {
-    return res
-      .status(400)
-      .json({
-        error: "hospitalName, location, title, description are required",
-      });
+    return res.status(400).json({ error: "All fields are required." });
   }
 
-  const newUpdate = {
-    id: updates.length ? updates[updates.length - 1].id + 1 : 1,
+  const update = {
+    id: uuidv4(),
+    email: email || req.email,
     hospitalName,
     location,
     title,
     description,
-    date: new Date().toISOString().slice(0, 10),
-    postedBy: email || null,
+    createdAt: new Date().toISOString(),
   };
 
-  updates.push(newUpdate);
-  res.status(201).json(newUpdate);
+  updates.push(update);
+  res.status(201).json(update);
+});
+
+// ─── DELETE an update (admin only) ──────────────────────────────────────────
+router.delete("/:id", verifyToken, verifyAdmin, (req, res) => {
+  const before = updates.length;
+  updates = updates.filter((u) => u.id !== req.params.id);
+  if (updates.length === before) {
+    return res.status(404).json({ error: "Update not found." });
+  }
+  res.json({ message: "Update deleted." });
 });
 
 module.exports = router;

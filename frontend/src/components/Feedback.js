@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 export default function Feedback() {
-  const { isAdmin } = useContext(AuthContext);
+  const { isAdmin } = useAuth();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [feedbackList, setFeedbackList] = useState([]);
@@ -42,14 +42,22 @@ export default function Feedback() {
     }
   };
 
-  // DELETE FEEDBACK (ADMIN ONLY) – requires backend DELETE endpoint to exist
+  // DELETE FEEDBACK (ADMIN ONLY) – now calls backend DELETE endpoint
   const deleteFeedback = async (index) => {
     if (!isAdmin) return;
     if (!window.confirm("Delete this feedback?")) return;
-
-    // Simple client-side delete if backend doesn't support DELETE
-    const updated = feedbackList.filter((_, i) => i !== index);
-    setFeedbackList(updated);
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/feedback/${index}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete feedback");
+      loadFeedback();
+    } catch (err) {
+      console.error("Failed to delete feedback", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

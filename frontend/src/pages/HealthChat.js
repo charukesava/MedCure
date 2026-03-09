@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import Header from "../components/Header";
+import { BASE_URL } from "../services/api";
 
 const BOT_IMG = "https://cdn-icons-png.flaticon.com/512/4712/4712109.png";
 
@@ -40,16 +41,19 @@ function HealthChat() {
     setIsTyping(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/analyze", {
+      const res = await fetch(`${BASE_URL}/api/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symptoms: userText }),
       });
       const data = await res.json();
 
+      const severityLabel = data.severity
+        ? `Severity: ${data.severity.charAt(0).toUpperCase() + data.severity.slice(1)}\n`
+        : "";
       const replyText = `
 Possible condition: ${data.possibleCondition}
-Advice: ${data.advice}
+${severityLabel}Advice: ${data.advice}
 Consult doctor: ${data.consultDoctor}
 ${data.disclaimer}
       `.trim();

@@ -1,37 +1,98 @@
 const express = require("express");
 const router = express.Router();
+const { verifyToken, verifyAdmin } = require("../middleware/auth");
+const rateLimit = require("express-rate-limit");
 
-// In-memory storage for appointments (replace with database in production)
-let appointmentsDB = [];
+// Max 10 appointment creations per IP per hour
+const appointmentLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many appointment requests. Please try again later." },
+});
+
+// ─── O(1) Map-based in-memory stores ───────────────────────────
+// Map<id, appointment>  — O(1) find, delete, update
+const appointmentsMap = new Map();
 let appointmentIdCounter = 1;
+
+// Map<id, notification>  — O(1) find/update
+const notificationsMap = new Map();
+let notificationIdCounter = 1;
+
+// Indexes for O(1) filtered queries
+// Map<userId, Set<notificationId>>
+const notifsByUser = new Map();
+// Unread admin notification IDs
+const adminUnreadIds = new Set();
+
+// Admin emails as Set for O(1) lookup
+const ADMIN_EMAILS = new Set([
+  "charukesava.k@gmail.com",
+  "admin@health-assistant.com",
+  "hospital.admin@gmail.com",
+  "support@health-assistant.com",
+]);
 
 /**
  * POST /api/appointments
- * Create a new appointment
+ * Create a new appointment and notify admins
  */
-router.post("/", (req, res) => {
+router.post("/", appointmentLimiter, (req, res) => {
   try {
-    const { userId, hospitalName, department, date, time, patientName, notes } =
-      req.body;
-
-    if (!userId || !hospitalName || !date || !time) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const newAppointment = {
-      id: appointmentIdCounter++,
+    const {
       userId,
+      userEmail,
       hospitalName,
       department,
       date,
       time,
       patientName,
       notes,
+      phone,
+    } = req.body;
+
+    if (!userId || !hospitalName || !date || !time) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Sanitize: ensure strings, strip leading/trailing whitespace, cap length
+    const sanitize = (val, max = 200) =>
+      typeof val === "string" ? val.trim().slice(0, max) : "";
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const timeRegex = /^\d{2}:\d{2}$/;
+    if (!dateRegex.test(date) || !timeRegex.test(time)) {
+      return res.status(400).json({ error: "Invalid date or time format" });
+    }
+
+    const newAppointment = {
+      id: appointmentIdCounter++,
+      userId: sanitize(userId),
+      userEmail: sanitize(userEmail),
+      hospitalName: sanitize(hospitalName),
+      department: sanitize(department),
+      date,
+      time,
+      patientName: sanitize(patientName),
+      notes: sanitize(notes, 1000),
+      phone: sanitize(phone, 20),
       status: "Pending",
+      adminNotes: "",
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    appointmentsDB.push(newAppointment);
+    appointmentsMap.set(newAppointment.id, newAppointment);
+
+    // Create admin notification
+    createAdminNotification(
+      `New Appointment Request: ${patientName} at ${hospitalName}`,
+      `Patient: ${patientName} (${phone}) has requested an appointment on ${date} at ${time} for ${department}`,
+      "appointment",
+      newAppointment.id,
+    );
+
     res.status(201).json(newAppointment);
   } catch (err) {
     console.error(err);
@@ -40,14 +101,87 @@ router.post("/", (req, res) => {
 });
 
 /**
- * GET /api/appointments/user/:uid
- * Get all appointments for a specific user
+ * Helper – create admin notification — O(1) insert
+ */
+function createAdminNotification(title, message, type, appointmentId) {
+  const notification = {
+    id: notificationIdCounter++,
+    title,
+    message,
+    type,
+    appointmentId,
+    isRead: false,
+    createdAt: new Date().toISOString(),
+    targetAdmins: [...ADMIN_EMAILS],
+  };
+  notificationsMap.set(notification.id, notification);
+  adminUnreadIds.add(notification.id);
+  return notification;
+}
+
+/**
+ * GET /api/appointments/admin/notifications — admin only
+ */
+router.get("/admin/notifications", verifyToken, verifyAdmin, (req, res) => {
+  try {
+    const unread = [...adminUnreadIds].map((id) => notificationsMap.get(id));
+    res.json(unread);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+});
+
+/**
+ * PUT /api/appointments/admin/notifications/:id/read — admin only
+ */
+router.put(
+  "/admin/notifications/:id/read",
+  verifyToken,
+  verifyAdmin,
+  (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const notification = notificationsMap.get(id);
+      if (!notification)
+        return res.status(404).json({ error: "Notification not found" });
+      notification.isRead = true;
+      adminUnreadIds.delete(id); // O(1) removal
+      res.json(notification);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  },
+);
+
+/**
+ * GET /api/appointments — admin only: returns all appointments
+ */
+router.get("/", verifyToken, verifyAdmin, (req, res) => {
+  try {
+    // Map preserves insertion order; sort descending by createdAt
+    const all = [...appointmentsMap.values()].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    );
+    res.json(all);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch appointments" });
+  }
+});
+
+/**
+ * GET /api/appointments/user/:uid — O(n) scan (acceptable; no per-user index needed for small data)
  */
 router.get("/user/:uid", (req, res) => {
   try {
     const { uid } = req.params;
-    const userAppointments = appointmentsDB.filter((a) => a.userId === uid);
-    res.json(userAppointments);
+    const result = [];
+    for (const a of appointmentsMap.values()) {
+      if (a.userId === uid) result.push(a);
+    }
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch user appointments" });
@@ -55,17 +189,18 @@ router.get("/user/:uid", (req, res) => {
 });
 
 /**
- * GET /api/appointments/hospital/:hospitalName
- * Get all appointments for a specific hospital
+ * GET /api/appointments/hospital/:hospitalName — O(n) scan
  */
 router.get("/hospital/:hospitalName", (req, res) => {
   try {
-    const { hospitalName } = req.params;
-    const decodedName = decodeURIComponent(hospitalName);
-    const hospitalAppointments = appointmentsDB.filter(
-      (a) => a.hospitalName.toLowerCase() === decodedName.toLowerCase(),
-    );
-    res.json(hospitalAppointments);
+    const decodedName = decodeURIComponent(
+      req.params.hospitalName,
+    ).toLowerCase();
+    const result = [];
+    for (const a of appointmentsMap.values()) {
+      if (a.hospitalName.toLowerCase() === decodedName) result.push(a);
+    }
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch hospital appointments" });
@@ -73,25 +208,41 @@ router.get("/hospital/:hospitalName", (req, res) => {
 });
 
 /**
- * PUT /api/appointments/:id/status
- * Update appointment status (for hospital/admin)
+ * PUT /api/appointments/:id/status — admin only
  */
-router.put("/:id/status", (req, res) => {
+router.put("/:id/status", verifyToken, verifyAdmin, (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, adminNotes } = req.body;
 
     if (!["Pending", "Approved", "Rejected", "Completed"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
 
-    const appointment = appointmentsDB.find((a) => a.id === parseInt(id));
-
-    if (!appointment) {
+    const appointment = appointmentsMap.get(parseInt(id)); // O(1)
+    if (!appointment)
       return res.status(404).json({ error: "Appointment not found" });
-    }
 
     appointment.status = status;
+    appointment.adminNotes = adminNotes || appointment.adminNotes;
+    appointment.updatedAt = new Date().toISOString();
+
+    // Create user notification
+    const statusMessages = {
+      Approved: "Your appointment has been approved!",
+      Rejected: "Your appointment request has been rejected.",
+      Completed: "Your appointment has been completed.",
+      Pending: "Your appointment is being reviewed.",
+    };
+
+    createUserNotification(
+      appointment.userId,
+      `Appointment Status Updated: ${status}`,
+      statusMessages[status],
+      "appointment",
+      appointment.id,
+    );
+
     res.json(appointment);
   } catch (err) {
     console.error(err);
@@ -100,18 +251,51 @@ router.put("/:id/status", (req, res) => {
 });
 
 /**
- * GET /api/appointments/:id
- * Get a specific appointment
+ * Helper – create user notification — O(1) insert
+ */
+function createUserNotification(userId, title, message, type, appointmentId) {
+  const notification = {
+    id: notificationIdCounter++,
+    userId,
+    title,
+    message,
+    type,
+    appointmentId,
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  };
+  notificationsMap.set(notification.id, notification);
+  // Maintain per-user index
+  if (!notifsByUser.has(userId)) notifsByUser.set(userId, new Set());
+  notifsByUser.get(userId).add(notification.id);
+  return notification;
+}
+
+/**
+ * GET /api/appointments/user/:uid/notifications — O(k) where k = user's notif count
+ */
+router.get("/user/:uid/notifications", (req, res) => {
+  try {
+    const { uid } = req.params;
+    const ids = notifsByUser.get(uid) || new Set();
+    const result = [...ids]
+      .map((id) => notificationsMap.get(id))
+      .filter(Boolean);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+});
+
+/**
+ * GET /api/appointments/:id — O(1)
  */
 router.get("/:id", (req, res) => {
   try {
-    const { id } = req.params;
-    const appointment = appointmentsDB.find((a) => a.id === parseInt(id));
-
-    if (!appointment) {
+    const appointment = appointmentsMap.get(parseInt(req.params.id));
+    if (!appointment)
       return res.status(404).json({ error: "Appointment not found" });
-    }
-
     res.json(appointment);
   } catch (err) {
     console.error(err);
@@ -120,23 +304,24 @@ router.get("/:id", (req, res) => {
 });
 
 /**
- * DELETE /api/appointments/:id
- * Cancel/Delete an appointment
+ * DELETE /api/appointments/:id — owner or admin only
  */
-router.delete("/:id", (req, res) => {
+router.delete("/:id", verifyToken, (req, res) => {
   try {
-    const { id } = req.params;
-    const index = appointmentsDB.findIndex((a) => a.id === parseInt(id));
-
-    if (index === -1) {
+    const id = parseInt(req.params.id);
+    const appointment = appointmentsMap.get(id);
+    if (!appointment)
       return res.status(404).json({ error: "Appointment not found" });
+    // Only the owner or an admin can cancel
+    if (appointment.userId !== req.uid && !req.isAdmin) {
+      return res
+        .status(403)
+        .json({
+          error: "Forbidden: you can only cancel your own appointments",
+        });
     }
-
-    const deletedAppointment = appointmentsDB.splice(index, 1);
-    res.json({
-      message: "Appointment cancelled",
-      appointment: deletedAppointment[0],
-    });
+    appointmentsMap.delete(id); // O(1)
+    res.json({ message: "Appointment cancelled", appointment });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to cancel appointment" });

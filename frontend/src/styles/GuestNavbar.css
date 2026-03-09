@@ -1,0 +1,193 @@
+.guest-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #ffffff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.guest-navbar-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+  height: 72px;
+}
+
+/* Brand Logo */
+.guest-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.guest-logo-icon {
+  display: flex;
+  align-items: center;
+}
+
+.guest-logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0d9488;
+  letter-spacing: -0.3px;
+}
+
+.guest-nav-center {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.nav-link {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  color: #374151;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  white-space: nowrap;
+  transition:
+    color 0.2s,
+    background 0.2s;
+}
+
+.nav-link:hover {
+  color: #0d9488;
+  background: #f0fdfb;
+}
+
+.guest-nav-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Get Started Button */
+.guest-get-started-btn {
+  padding: 10px 22px;
+  background: #0d9488;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s,
+    transform 0.15s,
+    box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+}
+
+.guest-get-started-btn:hover {
+  background: #0f766e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .guest-navbar-container {
+    padding: 0 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .guest-navbar-container {
+    padding: 0 16px;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: space-between;
+    height: 60px;
+  }
+
+  .guest-nav-center {
+    display: none;
+  }
+
+  .guest-logo-text {
+    font-size: 18px;
+  }
+
+  /* Hide desktop Get Started button — it's in the mobile dropdown */
+  .guest-nav-right .guest-get-started-btn {
+    display: none;
+  }
+
+  /* Hamburger button */
+  .guest-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #374151;
+    padding: 6px;
+    border-radius: 8px;
+    margin-left: auto;
+  }
+  .guest-hamburger:hover {
+    background: #f0fdfb;
+    color: #0d9488;
+  }
+
+  /* Mobile floating dropdown */
+  .guest-mobile-menu {
+    position: fixed;
+    top: 60px;
+    right: 12px;
+    left: auto;
+    width: 220px;
+    z-index: 999;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+    padding: 10px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: slideDownMenu 0.18s ease;
+  }
+  @keyframes slideDownMenu {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .guest-mobile-menu .nav-link {
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  .guest-mobile-menu .guest-get-started-btn {
+    margin-top: 6px;
+    width: 100%;
+    text-align: center;
+    padding: 12px 0;
+  }
+}
+
+@media (min-width: 769px) {
+  .guest-hamburger {
+    display: none;
+  }
+  .guest-mobile-menu {
+    display: none;
+  }
+}

@@ -10,9 +10,7 @@ function AdminDashboard() {
     return (
       <div style={{ padding: "30px" }}>
         <p>You must be logged in to view the admin dashboard.</p>
-        <button onClick={() => navigate("/admin-login")}>
-          Go to Admin Login
-        </button>
+        <button onClick={() => navigate("/login")}>Go to Login</button>
       </div>
     );
   }
@@ -74,7 +72,7 @@ function AdminDashboard() {
 
         <button
           style={{ marginTop: "20px" }}
-          onClick={() => navigate("/admin/updates")}
+          onClick={() => navigate("/admin")}
         >
           Manage Hospital Updates
         </button>
