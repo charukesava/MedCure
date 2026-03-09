@@ -14,7 +14,7 @@ const appointmentsRoutes = require("./routes/appointments");
 const doctorsRoutes = require("./routes/doctors");
 const emergencyRoutes = require("./routes/emergency");
 const feedbackRoutes = require("./routes/feedback");
-const hospitalUpdatesRoutes = require("./routes/hospitalUpdates");
+const hospitalUpdatesRoutes = require("./routes/HospitalUpdates");
 const hospitalsRoutes = require("./routes/hospitals");
 const aiChat = require("./routes/aiChat");
 
