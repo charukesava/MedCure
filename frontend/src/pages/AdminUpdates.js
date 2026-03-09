@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { auth } from "../firebase";
+import { auth } from "../config/firebase";
+import { getAuthHeaders, BASE_URL } from "../services/api";
 
 function AdminUpdates() {
   const [form, setForm] = useState({
@@ -32,9 +33,9 @@ function AdminUpdates() {
       return;
     }
 
-    const res = await fetch("http://localhost:5000/api/hospital-updates", {
+    const res = await fetch(`${BASE_URL}/api/hospital-updates`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getAuthHeaders(user),
       body: JSON.stringify({
         email: user.email,
         ...form,

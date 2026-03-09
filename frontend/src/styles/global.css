@@ -1,0 +1,433 @@
+/* ===============================
+   GLOBAL RESET
+================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ===============================
+   ANIMATIONS
+================================ */
+
+.fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-in-up {
+  animation: slideInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-in-down {
+  animation: slideInDown 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* ===============================
+   GLOBAL RESET & BASE
+================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+body {
+  background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+/* ===============================
+   LAYOUT CONTAINER
+================================ */
+
+.page {
+  button:hover {
+    background: linear-gradient(90deg, #764ba2 0%, #667eea 100%);
+    color: #ffd700;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.13);
+    transform: translateY(-2px) scale(1.03);
+  }
+
+  max-width: 900px;
+  margin: 30px auto;
+  background: #ffffff;
+  padding: 24px 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  .page {
+    margin: 12px;
+    padding: 16px;
+    border-radius: 8px;
+  }
+}
+
+/* ===============================
+   HEADINGS
+================================ */
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Scoped heading styles — only inside .page containers */
+.page h2 {
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+/* ===============================
+   NAVBAR
+================================ */
+
+nav {
+  background-color: #2c3e50;
+  padding: 12px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+nav button {
+  background: #ffffff;
+  color: #2c3e50;
+  border: none;
+  .page {
+    padding: 32px 40px;
+    border-radius: 22px;
+    box-shadow:
+      0 8px 32px rgba(102, 126, 234, 0.1),
+      0 1.5px 8px 0 rgba(118, 75, 162, 0.08);
+  }
+
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  font-size: 14px;
+}
+
+nav button:hover {
+  .feedback-card {
+    padding: 36px 40px;
+    border-radius: 20px;
+    box-shadow:
+      0 8px 32px rgba(102, 126, 234, 0.1),
+      0 1.5px 8px 0 rgba(118, 75, 162, 0.08);
+  }
+  background-color: #ecf0f1;
+}
+
+/* ===============================
+   FORM ELEMENTS
+================================ */
+
+input,
+select,
+.feedback-summary li {
+  background: #f8f9ff;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.06);
+}
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  margin: 10px 0 16px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ===============================
+   BUTTONS
+================================ */
+
+button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* ===============================
+   AUTH (LOGIN / SIGNUP)
+================================ */
+
+.auth-page {
+  max-width: 420px;
+  margin: 60px auto;
+  background: #ffffff;
+  padding: 30px 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.auth-page h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.auth-switch {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.link-btn:hover {
+  color: #2980b9;
+}
+
+.google-btn {
+  width: 100%;
+  margin-top: 10px;
+  background: #ffffff;
+  color: #333;
+  border: 1px solid #d0d0d0;
+  transition: all 0.15s ease;
+}
+
+.google-btn:hover {
+  background: #f5f5f5;
+}
+
+/* ===============================
+   FEEDBACK PAGE
+================================ */
+
+.feedback-container {
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px;
+  min-height: 100vh;
+}
+
+.feedback-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 700px;
+  padding: 28px 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: slideInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feedback-summary {
+  margin-top: 25px;
+  padding-left: 12px;
+  border-left: 4px solid #3498db;
+}
+
+.feedback-summary ul {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 12px;
+}
+
+.feedback-summary li {
+  background: #f5f5f5;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.feedback-summary strong {
+  color: #e67e22;
+}
+
+/* Star Rating */
+.star-rating {
+  font-size: 28px;
+  margin: 10px 0;
+}
+
+.star {
+  cursor: pointer;
+  color: #d0d0d0;
+  margin-right: 5px;
+  transition: color 0.15s ease;
+}
+
+.star.active,
+.star:hover {
+  color: #f39c12;
+}
+
+/* Feedback row */
+.feedback-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Delete button (Admin) */
+.delete-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #e74c3c;
+  transition: all 0.15s ease;
+}
+
+.delete-btn:hover {
+  color: #c0392b;
+  transform: scale(1.05);
+}
+
+/* ===============================
+   CARDS / RESULTS
+======================0e0e0;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  background-color: #f9f9f9;
+  font-size: 14px;
+}
+
+/* ===============================
+   TEXT / DISCLAIMER
+================================ */
+
+.disclaimer {
+  margin-top: 15px;
+  font-size: 13px;
+  color: #999;
+  font-style: italic;
+}
+
+/* PASSWORD FIELD */
+
+.password-field {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.password-field input {
+  padding-right: 50px;
+}
+
+.toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 11px;
+  background: none;
+  border: none;
+  color: #3498db;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 12px;
+  transition: color 0.15s ease;
+}
+
+.toggle-btn:hover {
+  color: #2980b9;
+  border: none;
+  color: #2564eb;
+  font-weight: 600;
+  cursor: pointer;
+}

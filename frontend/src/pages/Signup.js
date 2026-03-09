@@ -30,7 +30,7 @@ export default function Signup() {
     try {
       await signup(email, password);
       setMessage("✅ Signup successful. Please verify your email.");
-      setTimeout(() => navigate("/"), 2000);
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       setMessage("❌ " + (err.message || "Signup failed."));
     }
@@ -38,6 +38,24 @@ export default function Signup() {
 
   return (
     <div className="auth-box">
+      <div style={{ marginBottom: "20px" }}>
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            background: "transparent",
+            border: "1px solid #667eea",
+            color: "#667eea",
+            padding: "8px 16px",
+            borderRadius: "5px",
+            cursor: "pointer",
+            fontSize: "14px",
+            width: "100%",
+          }}
+        >
+          ← Back to Home
+        </button>
+      </div>
+
       <h2>Create Account</h2>
 
       {message && (
@@ -88,7 +106,7 @@ export default function Signup() {
       </form>
 
       <p style={{ marginTop: "10px" }}>
-        Already have an account? <a href="/">Login</a>
+        Already have an account? <a href="/login">Login</a>
       </p>
     </div>
   );

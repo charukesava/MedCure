@@ -12,6 +12,10 @@ node_modules/
 .env.local
 .env.*.local
 
+# Firebase service account — NEVER commit this
+serviceAccountKey.json
+*serviceAccountKey*.json
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { getAuthHeaders, BASE_URL } from "../services/api";
 
 export default function HospitalAppointments() {
   const { hospitalName } = useParams();
+  const { user } = useAuth();
   const [data, setData] = useState([]);
   const [searchHospital, setSearchHospital] = useState(hospitalName || "");
 
   const fetchAppointments = (name) => {
     if (!name) return;
-    fetch(
-      `http://localhost:5000/api/appointments/hospital/${encodeURIComponent(
-        name,
-      )}`,
-    )
+    fetch(`${BASE_URL}/api/appointments/hospital/${encodeURIComponent(name)}`)
       .then((res) => res.json())
       .then(setData)
       .catch(() => setData([]));
@@ -25,12 +24,17 @@ export default function HospitalAppointments() {
   }, [hospitalName]);
 
   const updateStatus = async (id, status) => {
-    await fetch(`http://localhost:5000/api/appointments/${id}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setData((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+    try {
+      const headers = await getAuthHeaders(user);
+      await fetch(`${BASE_URL}/api/appointments/${id}/status`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ status }),
+      });
+      setData((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
   };
 
   const handleSearch = (e) => {
