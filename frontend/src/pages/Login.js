@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../config/firebase";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function Login() {
   const { login, googleLogin } = useAuth();
@@ -12,6 +13,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const recaptchaRef = useRef();
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetMessage, setResetMessage] = useState("");
@@ -21,6 +24,10 @@ export default function Login() {
     setMessage("");
     if (!email || !password) {
       setMessage("Please fill in all fields.");
+      return;
+    }
+    if (!captchaVerified) {
+      setMessage("Please complete the reCAPTCHA verification.");
       return;
     }
 
@@ -136,7 +143,14 @@ export default function Login() {
               required
             />
 
-            <button type="submit">Login</button>
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+              onChange={() => setCaptchaVerified(true)}
+              onExpired={() => setCaptchaVerified(false)}
+              style={{ marginBottom: "10px" }}
+            />
+            <button type="submit" disabled={!captchaVerified}>Login</button>
           </form>
 
           <button

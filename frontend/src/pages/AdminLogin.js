@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function AdminLogin() {
   const { login } = useAuth();
@@ -9,6 +10,8 @@ export default function AdminLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const recaptchaRef = useRef();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -16,6 +19,10 @@ export default function AdminLogin() {
 
     if (!username || !password) {
       setError("Please enter email and password.");
+      return;
+    }
+    if (!captchaVerified) {
+      setError("Please complete the reCAPTCHA verification.");
       return;
     }
 
@@ -54,7 +61,14 @@ export default function AdminLogin() {
 
         {error && <p style={{ color: "red", marginBottom: 8 }}>{error}</p>}
 
-        <button type="submit">Login</button>
+        <ReCAPTCHA
+          ref={recaptchaRef}
+          sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+          onChange={() => setCaptchaVerified(true)}
+          onExpired={() => setCaptchaVerified(false)}
+          style={{ marginBottom: "10px" }}
+        />
+        <button type="submit" disabled={!captchaVerified}>Login</button>
       </form>
     </div>
   );
