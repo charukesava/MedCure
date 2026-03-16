@@ -5,6 +5,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Map from "./pages/Map";
 
 import Login from "./pages/Login";
@@ -212,6 +213,7 @@ export default function App() {
     <AuthProvider>
       <Router>
         <AppRoutes />
+        <SpeedInsights />
       </Router>
     </AuthProvider>
   );
