@@ -6,13 +6,11 @@ const { verifyToken, verifyAdmin } = require("../middleware/auth");
 // In-memory store (persists for the lifetime of the server process)
 let updates = [];
 
-// ─── GET all updates (public) ────────────────────────────────────────────────
 router.get("/", (req, res) => {
   // Return newest first
   res.json([...updates].reverse());
 });
 
-// ─── POST a new update (admin only) ─────────────────────────────────────────
 router.post("/", verifyToken, verifyAdmin, (req, res) => {
   const { email, hospitalName, location, title, description } = req.body;
 
@@ -34,7 +32,6 @@ router.post("/", verifyToken, verifyAdmin, (req, res) => {
   res.status(201).json(update);
 });
 
-// ─── DELETE an update (admin only) ──────────────────────────────────────────
 router.delete("/:id", verifyToken, verifyAdmin, (req, res) => {
   const before = updates.length;
   updates = updates.filter((u) => u.id !== req.params.id);

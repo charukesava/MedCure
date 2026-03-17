@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { BASE_URL, getAuthHeaders } from "../services/api";
 
 export default function Feedback() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [feedbackList, setFeedbackList] = useState([]);
@@ -11,7 +12,7 @@ export default function Feedback() {
   // LOAD FEEDBACK
   const loadFeedback = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/feedback");
+      const res = await fetch(`${BASE_URL}/api/feedback`);
       const data = await res.json();
       setFeedbackList(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -24,7 +25,7 @@ export default function Feedback() {
     if (rating === 0) return;
     setLoading(true);
     try {
-      await fetch("http://localhost:5000/api/feedback", {
+      await fetch(`${BASE_URL}/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -48,8 +49,10 @@ export default function Feedback() {
     if (!window.confirm("Delete this feedback?")) return;
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/feedback/${index}`, {
+      const headers = await getAuthHeaders(user);
+      const res = await fetch(`${BASE_URL}/api/feedback/${index}`, {
         method: "DELETE",
+        headers,
       });
       if (!res.ok) throw new Error("Failed to delete feedback");
       loadFeedback();
