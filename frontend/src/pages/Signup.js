@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { validatePasswordStrength } from "../utils/security";
 import "../styles/auth.css";
 
 export default function Signup() {
@@ -12,6 +13,20 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState(null);
+
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    setPassword(value);
+
+    // Check password strength in real-time
+    if (value) {
+      const strength = validatePasswordStrength(value);
+      setPasswordStrength(strength);
+    } else {
+      setPasswordStrength(null);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,6 +39,13 @@ export default function Signup() {
 
     if (password !== confirmPassword) {
       setMessage("❌ Passwords do not match.");
+      return;
+    }
+
+    // Check password strength
+    const strength = validatePasswordStrength(password);
+    if (strength.score < 2) {
+      setMessage("❌ Password is too weak. Please use a stronger password.");
       return;
     }
 
@@ -82,9 +104,44 @@ export default function Signup() {
           placeholder="Password"
           type={showPassword ? "text" : "password"}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={handlePasswordChange}
           required
         />
+
+        {/* 🔐 Password Strength Indicator */}
+        {passwordStrength && (
+          <div style={{ marginTop: "8px", marginBottom: "10px" }}>
+            <div
+              style={{
+                height: "4px",
+                backgroundColor: "#e0e0e0",
+                borderRadius: "2px",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${(passwordStrength.score + 1) * 25}%`,
+                  backgroundColor:
+                    passwordStrength.score === 0
+                      ? "#d9534f"
+                      : passwordStrength.score === 1
+                        ? "#f0ad4e"
+                        : passwordStrength.score === 2
+                          ? "#5cb85c"
+                          : "#27ae60",
+                  transition: "width 0.3s",
+                }}
+              />
+            </div>
+            <small style={{ color: "#666", fontSize: "12px" }}>
+              Strength:{" "}
+              {["Very Weak", "Weak", "Fair", "Good"][passwordStrength.score]}{" "}
+              {passwordStrength.feedback && `- ${passwordStrength.feedback}`}
+            </small>
+          </div>
+        )}
 
         <input
           placeholder="Confirm Password"

@@ -2,27 +2,36 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 
-// Read from environment variables (set in .env.local for production).
-// Falls back to hardcoded values so local dev keeps working without .env.local.
+// Validate required environment variables
+const requiredEnvVars = [
+  "REACT_APP_FIREBASE_API_KEY",
+  "REACT_APP_FIREBASE_AUTH_DOMAIN",
+  "REACT_APP_FIREBASE_PROJECT_ID",
+  "REACT_APP_FIREBASE_STORAGE_BUCKET",
+  "REACT_APP_FIREBASE_MESSAGING_SENDER_ID",
+  "REACT_APP_FIREBASE_APP_ID",
+  "REACT_APP_FIREBASE_MEASUREMENT_ID",
+];
+
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.warn(
+    "⚠️ Missing Firebase environment variables:",
+    missingVars.join(", "),
+    "\nPlease check your .env file. See .env.example for required variables.",
+  );
+}
+
+// Firebase configuration from environment variables only (no hardcoded credentials)
 const firebaseConfig = {
-  apiKey:
-    process.env.REACT_APP_FIREBASE_API_KEY ||
-    "AIzaSyAqxPmPvDwF2bSaB3W2rN2yPVeO8Dg5hSo",
-  authDomain:
-    process.env.REACT_APP_FIREBASE_AUTH_DOMAIN ||
-    "health-assistant-9807.firebaseapp.com",
-  projectId:
-    process.env.REACT_APP_FIREBASE_PROJECT_ID || "health-assistant-9807",
-  storageBucket:
-    process.env.REACT_APP_FIREBASE_STORAGE_BUCKET ||
-    "health-assistant-9807.appspot.com",
-  messagingSenderId:
-    process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "976285621510",
-  appId:
-    process.env.REACT_APP_FIREBASE_APP_ID ||
-    "1:976285621510:web:2dfb474fef67686dbc1287",
-  measurementId:
-    process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-MCPG6TP0XG",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase

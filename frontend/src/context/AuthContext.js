@@ -13,17 +13,14 @@ import {
   EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
+import { ADMIN_EMAILS } from "../config/adminConfig";
 
 // 🔐 CREATE CONTEXT — exported so Feedback.js and other consumers can use it directly
 export const AuthContext = createContext();
 
 // 🔑 ADMIN EMAIL LIST — Set gives O(1) .has() vs Array O(n) .includes()
-const ADMIN_EMAILS = new Set([
-  "charukesava.k@gmail.com",
-  "admin@health-assistant.com",
-  "hospital.admin@gmail.com",
-  "support@health-assistant.com",
-]);
+// Imported from centralized config to stay in sync with backend
+const ADMIN_EMAILS_SET = new Set(ADMIN_EMAILS);
 
 // 🔒 PROVIDER
 export function AuthProvider({ children }) {
@@ -118,7 +115,7 @@ export function AuthProvider({ children }) {
 
   // 🧠 ADMIN CHECK — memoized so it only recomputes when `user` changes
   const isAdmin = useMemo(
-    () => (user ? ADMIN_EMAILS.has(user.email) : false),
+    () => (user ? ADMIN_EMAILS_SET.has(user.email) : false),
     [user],
   );
 

@@ -12,9 +12,23 @@ export default function HospitalAppointments() {
   const fetchAppointments = (name) => {
     if (!name) return;
     fetch(`${BASE_URL}/api/appointments/hospital/${encodeURIComponent(name)}`)
-      .then((res) => res.json())
-      .then(setData)
-      .catch(() => setData([]));
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        // Ensure data is always an array
+        if (Array.isArray(data)) {
+          setData(data);
+        } else {
+          console.warn("API returned non-array data:", data);
+          setData([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching appointments:", error);
+        setData([]);
+      });
   };
 
   useEffect(() => {

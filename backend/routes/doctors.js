@@ -33,7 +33,12 @@ const doctors = [
 ];
 
 router.get("/", (req, res) => {
-  res.json(doctors);
+  try {
+    res.json(doctors);
+  } catch (err) {
+    console.error("[Doctors GET Error]", err.message);
+    res.status(500).json({ error: "Failed to fetch doctors" });
+  }
 });
 
 module.exports = router;

@@ -27,7 +27,12 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 router.get("/", (req, res) => {
-  res.json(hospitals);
+  try {
+    res.json(hospitals);
+  } catch (err) {
+    console.error("[Hospitals GET / Error]", err.message);
+    res.status(500).json({ error: "Failed to fetch hospitals" });
+  }
 });
 
 /**
@@ -36,25 +41,30 @@ router.get("/", (req, res) => {
  * Results are sorted by distance and include a `distanceKm` field.
  */
 router.get("/nearby", (req, res) => {
-  const lat = parseFloat(req.query.lat);
-  const lng = parseFloat(req.query.lng);
-  const radius = parseFloat(req.query.radius) || 10;
+  try {
+    const lat = parseFloat(req.query.lat);
+    const lng = parseFloat(req.query.lng);
+    const radius = parseFloat(req.query.radius) || 10;
 
-  if (isNaN(lat) || isNaN(lng)) {
-    return res
-      .status(400)
-      .json({ error: "lat and lng query params are required" });
+    if (isNaN(lat) || isNaN(lng)) {
+      return res
+        .status(400)
+        .json({ error: "lat and lng query params are required" });
+    }
+
+    const nearby = hospitals
+      .map((h) => ({
+        ...h,
+        distanceKm: haversineKm(lat, lng, h.coordinates.lat, h.coordinates.lng),
+      }))
+      .filter((h) => h.distanceKm <= radius)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    res.json(nearby);
+  } catch (err) {
+    console.error("[Hospitals Nearby Error]", err.message);
+    res.status(500).json({ error: "Failed to fetch nearby hospitals" });
   }
-
-  const nearby = hospitals
-    .map((h) => ({
-      ...h,
-      distanceKm: haversineKm(lat, lng, h.coordinates.lat, h.coordinates.lng),
-    }))
-    .filter((h) => h.distanceKm <= radius)
-    .sort((a, b) => a.distanceKm - b.distanceKm);
-
-  res.json(nearby);
 });
 
 /**
@@ -62,35 +72,58 @@ router.get("/nearby", (req, res) => {
  * Search hospitals by name, city, or specialty — O(n) scan is unavoidable here
  */
 router.get("/search", (req, res) => {
-  const { q } = req.query;
-  if (!q) return res.json(hospitals);
+  try {
+    const { q } = req.query;
+    if (!q) return res.json(hospitals);
 
-  const searchTerm = q.toLowerCase();
-  const results = hospitals.filter(
-    (h) =>
-      h.name.toLowerCase().includes(searchTerm) ||
-      h.city.toLowerCase().includes(searchTerm) ||
-      h.specialties.some((s) => s.toLowerCase().includes(searchTerm)),
-  );
-  res.json(results);
+    const searchTerm = q.toLowerCase();
+    const results = hospitals.filter(
+      (h) =>
+        h.name.toLowerCase().includes(searchTerm) ||
+        h.city.toLowerCase().includes(searchTerm) ||
+        h.specialties.some((s) => s.toLowerCase().includes(searchTerm)),
+    );
+    res.json(results);
+  } catch (err) {
+    console.error("[Hospitals Search Error]", err.message);
+    res.status(500).json({ error: "Failed to search hospitals" });
+  }
 });
 
 /**
  * GET /api/hospitals/city/:city — O(1) via precomputed byCity Map
  */
 router.get("/city/:city", (req, res) => {
-  const key = req.params.city.toLowerCase();
-  const cityHospitals = byCity.get(key) || [];
-  res.json(cityHospitals);
+  try {
+    const key = req.params.city.toLowerCase();
+    const cityHospitals = byCity.get(key) || [];
+    res.json(cityHospitals);
+  } catch (err) {
+    console.error("[Hospitals City Error]", err.message);
+    res.status(500).json({ error: "Failed to fetch hospitals by city" });
+  }
 });
 
 /**
  * GET /api/hospitals/:id — O(1) via precomputed byId Map
  */
 router.get("/:id", (req, res) => {
-  const hospital = byId.get(parseInt(req.params.id));
-  if (!hospital) return res.status(404).json({ error: "Hospital not found" });
-  res.json(hospital);
+  try {
+    const hospitalId = parseInt(req.params.id);
+    if (isNaN(hospitalId)) {
+      return res
+        .status(400)
+        .json({ error: "Hospital ID must be a valid number" });
+    }
+    const hospital = byId.get(hospitalId);
+    if (!hospital) {
+      return res.status(404).json({ error: "Hospital not found" });
+    }
+    res.json(hospital);
+  } catch (err) {
+    console.error("[Hospitals Get By ID Error]", err.message);
+    res.status(500).json({ error: "Failed to fetch hospital" });
+  }
 });
 
 module.exports = router;

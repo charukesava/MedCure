@@ -1,4 +1,6 @@
 // Falls back to localhost in development; set REACT_APP_API_URL in production
+import { validateApiResponse } from "../utils/security";
+
 export const BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000";
 
@@ -17,6 +19,7 @@ export const getAuthHeaders = async (firebaseUser) => {
 
 /**
  * Generic GET helper with optional AbortSignal support.
+ * Validates and sanitizes responses for security.
  */
 export const getData = (url, signal) =>
   fetch(url, { signal }).then(async (res) => {
@@ -26,11 +29,14 @@ export const getData = (url, signal) =>
         status: res.status,
         data: json,
       });
+    // 🔐 Validate API response for suspicious patterns
+    validateApiResponse(json);
     return json;
   });
 
 /**
  * Generic POST helper with optional AbortSignal support.
+ * Validates and sanitizes responses for security.
  */
 export const postData = (url, data, signal) =>
   fetch(url, {
@@ -46,6 +52,8 @@ export const postData = (url, data, signal) =>
         data: json,
       });
     }
+    // 🔐 Validate API response for suspicious patterns
+    validateApiResponse(json);
     return json;
   });
 

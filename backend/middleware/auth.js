@@ -1,23 +1,17 @@
 /**
- * Firebase auth middleware
+ * Firebase auth middleware with security audit logging
  * Verifies the Firebase ID token sent in the Authorization header.
  *
  * Usage:
  *   router.get('/secret', verifyToken, (req, res) => { ... })
  *   req.uid      → verified Firebase UID
  *   req.email    → verified email
- *   req.isAdmin  → true if email is in ADMIN_EMAILS
+ *   req.isAdmin  → true if email is in ADMIN_EMAILS (from config/adminConfig)
  */
 
 const admin = require("firebase-admin");
-
-// Keep in sync with appointments.js and AuthContext.js
-const ADMIN_EMAILS = new Set([
-  "charukesava.k@gmail.com",
-  "admin@health-assistant.com",
-  "hospital.admin@gmail.com",
-  "support@health-assistant.com",
-]);
+const { ADMIN_EMAILS_SET } = require("../config/adminConfig");
+const { logAuthFailure, logAdminAction } = require("./auditLog");
 
 /**
  * Verifies Firebase ID token from "Authorization: Bearer <token>" header.
@@ -26,6 +20,7 @@ const ADMIN_EMAILS = new Set([
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization || "";
   if (!authHeader.startsWith("Bearer ")) {
+    logAuthFailure(req, "Missing or invalid Bearer token");
     return res.status(401).json({ error: "Unauthorized: missing token" });
   }
 
@@ -34,10 +29,22 @@ const verifyToken = async (req, res, next) => {
     const decoded = await admin.auth().verifyIdToken(idToken);
     req.uid = decoded.uid;
     req.email = decoded.email || "";
-    req.isAdmin = ADMIN_EMAILS.has(req.email);
+    req.isAdmin = ADMIN_EMAILS_SET.has(req.email);
+
+    // Update audit info with authenticated user
+    if (req.auditInfo) {
+      req.auditInfo.userId = req.uid;
+      req.auditInfo.email = req.email;
+    }
+
     next();
   } catch (err) {
-    console.error("[Auth] Token verification failed:", err.message);
+    const reason =
+      err.code === "auth/id-token-expired"
+        ? "Token expired"
+        : "Invalid or malformed token";
+    logAuthFailure(req, reason, 1);
+    console.error("[Auth] Token verification failed:", err.code || err.message);
     return res.status(401).json({ error: "Unauthorized: invalid token" });
   }
 };
@@ -48,8 +55,14 @@ const verifyToken = async (req, res, next) => {
  */
 const verifyAdmin = (req, res, next) => {
   if (!req.isAdmin) {
+    const details = `Unauthorized admin access attempt by ${req.email}`;
+    logAuthFailure(req, details, 2); // CRITICAL severity
     return res.status(403).json({ error: "Forbidden: admin access required" });
   }
+
+  // Log successful admin action preparation
+  logAdminAction(req, "Admin endpoint accessed", `Path: ${req.path}`, 0);
+
   next();
 };
 

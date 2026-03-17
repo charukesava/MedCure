@@ -2,6 +2,48 @@ const express = require("express");
 const router = express.Router();
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 const rateLimit = require("express-rate-limit");
+const { ADMIN_EMAILS_SET } = require("../config/adminConfig");
+
+// ─── Validation Regexes ───────────────────────────────────────────────────
+const VALIDATION = {
+  // Date: YYYY-MM-DD
+  date: /^\d{4}-\d{2}-\d{2}$/,
+  // Time: HH:MM (24-hour format)
+  time: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+  // Email: basic validation
+  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  // Phone: 10-15 digits, may include +, -, (), spaces
+  phone: /^[\d\s\-+()]{10,15}$/,
+  // Patient Name: alphanumeric, spaces, hyphens, periods (no special chars)
+  name: /^[a-zA-Z\s\-']{2,100}$/,
+  // Hospital Name: alphanumeric, spaces, hyphens, ampersands
+  hospitalName: /^[a-zA-Z0-9\s\-&']{2,150}$/,
+  // Department: letters, spaces, hyphens, slashes
+  department: /^[a-zA-Z\s\-/]{2,100}$/,
+};
+
+const MAX_LENGTHS = {
+  userId: 200,
+  userEmail: 200,
+  hospitalName: 200,
+  department: 100,
+  patientName: 100,
+  phone: 20,
+  notes: 1000,
+};
+
+// Helper: Validate input against regex
+const validateField = (value, regex, fieldName) => {
+  if (typeof value !== "string" || !regex.test(value.trim())) {
+    throw new Error(`Invalid ${fieldName} format`);
+  }
+};
+
+// Helper: Sanitize string input
+const sanitize = (value, maxLength = 200) => {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, maxLength);
+};
 
 // Max 10 appointment creations per IP per hour
 const appointmentLimiter = rateLimit({
@@ -27,17 +69,10 @@ const notifsByUser = new Map();
 // Unread admin notification IDs
 const adminUnreadIds = new Set();
 
-// Admin emails as Set for O(1) lookup
-const ADMIN_EMAILS = new Set([
-  "charukesava.k@gmail.com",
-  "admin@health-assistant.com",
-  "hospital.admin@gmail.com",
-  "support@health-assistant.com",
-]);
-
 /**
  * POST /api/appointments
- * Create a new appointment and notify admins
+ * Create a new appointment with comprehensive input validation.
+ * Returns: 201 with appointment object, or 400 with validation error
  */
 router.post("/", appointmentLimiter, (req, res) => {
   try {
@@ -53,30 +88,55 @@ router.post("/", appointmentLimiter, (req, res) => {
       phone,
     } = req.body;
 
-    if (!userId || !hospitalName || !date || !time) {
-      return res.status(400).json({ error: "Missing required fields" });
+    // ─── Validate required fields exist ───────────────────
+    if (!userId || !hospitalName || !date || !time || !patientName) {
+      return res.status(400).json({
+        error:
+          "Missing required fields: userId, hospitalName, date, time, patientName",
+      });
     }
 
-    // Sanitize: ensure strings, strip leading/trailing whitespace, cap length
-    const sanitize = (val, max = 200) =>
-      typeof val === "string" ? val.trim().slice(0, max) : "";
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    const timeRegex = /^\d{2}:\d{2}$/;
-    if (!dateRegex.test(date) || !timeRegex.test(time)) {
-      return res.status(400).json({ error: "Invalid date or time format" });
+    // ─── Validate types ──────────────────────────────────
+    if (typeof userId !== "string" || typeof hospitalName !== "string") {
+      return res
+        .status(400)
+        .json({ error: "userId and hospitalName must be strings" });
     }
 
+    // ─── Validate formats using regex ────────────────────
+    try {
+      validateField(date, VALIDATION.date, "date (YYYY-MM-DD)");
+      validateField(time, VALIDATION.time, "time (HH:MM)");
+      validateField(patientName, VALIDATION.name, "patientName");
+      validateField(hospitalName, VALIDATION.hospitalName, "hospitalName");
+
+      if (userEmail && userEmail.trim()) {
+        validateField(userEmail, VALIDATION.email, "email");
+      }
+
+      if (phone && phone.trim()) {
+        validateField(phone, VALIDATION.phone, "phone");
+      }
+
+      if (department && department.trim()) {
+        validateField(department, VALIDATION.department, "department");
+      }
+    } catch (validationErr) {
+      return res.status(400).json({ error: validationErr.message });
+    }
+
+    // ─── Sanitize all string fields ──────────────────────
     const newAppointment = {
       id: appointmentIdCounter++,
-      userId: sanitize(userId),
-      userEmail: sanitize(userEmail),
-      hospitalName: sanitize(hospitalName),
-      department: sanitize(department),
-      date,
-      time,
-      patientName: sanitize(patientName),
-      notes: sanitize(notes, 1000),
-      phone: sanitize(phone, 20),
+      userId: sanitize(userId, MAX_LENGTHS.userId),
+      userEmail: sanitize(userEmail, MAX_LENGTHS.userEmail),
+      hospitalName: sanitize(hospitalName, MAX_LENGTHS.hospitalName),
+      department: sanitize(department, MAX_LENGTHS.department),
+      date: date,
+      time: time,
+      patientName: sanitize(patientName, MAX_LENGTHS.patientName),
+      notes: sanitize(notes, MAX_LENGTHS.notes),
+      phone: sanitize(phone, MAX_LENGTHS.phone),
       status: "Pending",
       adminNotes: "",
       createdAt: new Date().toISOString(),
@@ -95,7 +155,7 @@ router.post("/", appointmentLimiter, (req, res) => {
 
     res.status(201).json(newAppointment);
   } catch (err) {
-    console.error(err);
+    console.error("[Appointments POST Error]", err.message);
     res.status(500).json({ error: "Failed to create appointment" });
   }
 });
@@ -112,7 +172,7 @@ function createAdminNotification(title, message, type, appointmentId) {
     appointmentId,
     isRead: false,
     createdAt: new Date().toISOString(),
-    targetAdmins: [...ADMIN_EMAILS],
+    targetAdmins: [...ADMIN_EMAILS_SET],
   };
   notificationsMap.set(notification.id, notification);
   adminUnreadIds.add(notification.id);
@@ -314,11 +374,9 @@ router.delete("/:id", verifyToken, (req, res) => {
       return res.status(404).json({ error: "Appointment not found" });
     // Only the owner or an admin can cancel
     if (appointment.userId !== req.uid && !req.isAdmin) {
-      return res
-        .status(403)
-        .json({
-          error: "Forbidden: you can only cancel your own appointments",
-        });
+      return res.status(403).json({
+        error: "Forbidden: you can only cancel your own appointments",
+      });
     }
     appointmentsMap.delete(id); // O(1)
     res.json({ message: "Appointment cancelled", appointment });
