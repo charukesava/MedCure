@@ -4,7 +4,8 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { checkHttpSecure } from "./utils/security";
 import Map from "./pages/Map";
 
 import Login from "./pages/Login";
@@ -208,6 +209,11 @@ function AppRoutes() {
 }
 
 export default function App() {
+  // 🔐 Security check on app startup
+  useEffect(() => {
+    checkHttpSecure();
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
