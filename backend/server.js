@@ -14,14 +14,27 @@ const appointmentsRoutes = require("./routes/appointments");
 const doctorsRoutes = require("./routes/doctors");
 const emergencyRoutes = require("./routes/emergency");
 const feedbackRoutes = require("./routes/feedback");
-const hospitalUpdatesRoutes = require("./routes/HospitalUpdates");
+const hospitalUpdatesRoutes = require("./routes/hospitalUpdates");
 const hospitalsRoutes = require("./routes/hospitals");
 const aiChat = require("./routes/aiChat");
 
 // ─── CORS — only allow the React dev server and production origin ──────────
-const ALLOWED_ORIGINS = (
-  process.env.ALLOWED_ORIGINS || "http://localhost:3000"
-).split(",");
+const DEFAULT_ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
+];
+
+const ALLOWED_ORIGINS = [
+  ...new Set([
+    ...DEFAULT_ALLOWED_ORIGINS,
+    ...(process.env.ALLOWED_ORIGINS || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ]),
+];
 app.use(
   cors({
     origin: (origin, cb) => {
