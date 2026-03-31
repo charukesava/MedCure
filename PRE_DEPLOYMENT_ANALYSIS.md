@@ -154,7 +154,7 @@ All routes successfully registered:
 
 ```
 ✅ PORT=5000
-✅ GEMINI_API_KEY=AIzaSyDqfG0-CdqQ2GDCAx9zy-8VdTbsYjgBGDU
+✅ GEMINI_API_KEY=AI.....
 ✅ ALLOWED_ORIGINS=http://localhost:3000
 ```
 
