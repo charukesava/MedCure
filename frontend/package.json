@@ -35,6 +35,8 @@
     ]
   },
   "devDependencies": {
-    "prettier": "^3.8.1"
+    "nth-check": "^2.1.1",
+    "prettier": "^3.8.1",
+    "underscore": "^1.13.6"
   }
 }
