@@ -10,7 +10,7 @@
  */
 
 const admin = require("firebase-admin");
-const { ADMIN_EMAILS_SET } = require("../config/adminConfig");
+const { isAdminEmail } = require("../config/adminConfig");
 const { logAuthFailure, logAdminAction } = require("./auditLog");
 
 /**
@@ -29,7 +29,7 @@ const verifyToken = async (req, res, next) => {
     const decoded = await admin.auth().verifyIdToken(idToken);
     req.uid = decoded.uid;
     req.email = decoded.email || "";
-    req.isAdmin = ADMIN_EMAILS_SET.has(req.email);
+    req.isAdmin = isAdminEmail(req.email);
 
     // Update audit info with authenticated user
     if (req.auditInfo) {

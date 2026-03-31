@@ -38,10 +38,10 @@ export const getData = (url, signal) =>
  * Generic POST helper with optional AbortSignal support.
  * Validates and sanitizes responses for security.
  */
-export const postData = (url, data, signal) =>
+export const postData = (url, data, signal, headers = {}) =>
   fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(data),
     signal,
   }).then(async (res) => {
@@ -58,10 +58,12 @@ export const postData = (url, data, signal) =>
   });
 
 /**
- * POST /api/hospital-updates
+ * POST /api/hospital-updates (requires admin auth)
  */
-export const postHospitalUpdates = (data) =>
-  postData(`${BASE_URL}/api/hospital-updates`, data);
+export const postHospitalUpdates = async (data, firebaseUser) => {
+  const headers = await getAuthHeaders(firebaseUser);
+  return postData(`${BASE_URL}/api/hospital-updates`, data, undefined, headers);
+};
 
 /**
  * GET /api/hospital-updates
