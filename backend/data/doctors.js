@@ -29,4 +29,4 @@ const doctors = [
   }
 ];
 
-export default doctors;
+module.exports = doctors;
