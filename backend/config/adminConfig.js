@@ -18,8 +18,8 @@ const ADMIN_EMAILS = [
   "support@health-assistant.com",
 ];
 
-// Convert to Set for O(1) lookup performance
-const ADMIN_EMAILS_SET = new Set(ADMIN_EMAILS);
+// Convert to Set for O(1) lookup performance (normalized to lowercase)
+const ADMIN_EMAILS_SET = new Set(ADMIN_EMAILS.map(e => e.toLowerCase()));
 
 /**
  * Check if an email is an admin
