@@ -8,13 +8,27 @@ function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/hospital-updates`)
-      .then((res) => res.json())
-      .then((data) => {
-        setUpdates(data);
+    const fetchUpdates = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/hospital-updates`);
+        const data = await res.json();
+
+        // ✅ FIX: Ensure data is always an array
+        if (Array.isArray(data)) {
+          setUpdates(data);
+        } else {
+          console.error("Invalid API response:", data);
+          setUpdates([]);
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+        setUpdates([]);
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    };
+
+    fetchUpdates();
   }, []);
 
   return (
@@ -66,6 +80,7 @@ function Home() {
             symptoms and receive a thorough assessment — including causes,
             treatments, diet tips, and when to see a specialist.
           </p>
+
           <div
             style={{
               marginTop: "12px",
@@ -95,6 +110,7 @@ function Home() {
             ))}
           </div>
         </div>
+
         <button
           onClick={() => navigate("/doctor-agent")}
           style={{
@@ -123,28 +139,32 @@ function Home() {
 
         {loading && <p>Loading updates...</p>}
 
-        {!loading && updates.length === 0 && (
+        {!loading && (!Array.isArray(updates) || updates.length === 0) && (
           <p>No hospital updates available at the moment.</p>
         )}
 
-        {updates.map((item) => (
-          <div
-            key={item.id}
-            className="feedback-card slide-in-up"
-            style={{ marginTop: "18px", padding: "20px 28px" }}
-          >
-            <strong>{item.title}</strong>
-            <p>{item.description}</p>
+        {/* ✅ FIX: Safe rendering */}
+        {Array.isArray(updates) &&
+          updates.map((item) => (
+            <div
+              key={item._id || item.id}
+              className="feedback-card slide-in-up"
+              style={{ marginTop: "18px", padding: "20px 28px" }}
+            >
+              <strong>{item.title}</strong>
+              <p>{item.description}</p>
 
-            <p style={{ marginTop: "5px", fontSize: "14px" }}>
-              🏥 <strong>{item.hospitalName}</strong>
-              <br />
-              📍 {item.location}
-            </p>
+              <p style={{ marginTop: "5px", fontSize: "14px" }}>
+                🏥 <strong>{item.hospitalName}</strong>
+                <br />
+                📍 {item.location}
+              </p>
 
-            <small style={{ color: "#777" }}>Date: {item.date}</small>
-          </div>
-        ))}
+              <small style={{ color: "#777" }}>
+                Date: {item.date || "N/A"}
+              </small>
+            </div>
+          ))}
       </section>
     </div>
   );
