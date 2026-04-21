@@ -61,16 +61,17 @@ export default function NearbyFinder() {
 
       const allHospitals = await response.json();
 
-      // Filter hospitals by query (city name)
+      // Filter hospitals by query (city, state, or name)
       const filtered = allHospitals.filter(
         (h) =>
           h.city.toLowerCase().includes(query.toLowerCase()) ||
+          h.state.toLowerCase().includes(query.toLowerCase()) ||
           h.name.toLowerCase().includes(query.toLowerCase()),
       );
 
       if (filtered.length === 0) {
         setError(
-          `No hospitals found in "${query}". Try another city like Hyderabad, Mumbai, Delhi, etc.`,
+          `No hospitals found in "${query}". Try a city like Hyderabad, Mumbai, Delhi, or a state like Uttar Pradesh, Madhya Pradesh, etc.`,
         );
         setLoading(false);
         return;

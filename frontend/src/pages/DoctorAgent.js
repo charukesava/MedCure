@@ -294,6 +294,8 @@ export default function DoctorAgent() {
     setHistoryOpen(false);
   };
 
+
+
   const sendMessage = async (text) => {
     const userText = (text || input).trim();
     if (!userText || isTyping) return;

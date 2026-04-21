@@ -23,6 +23,7 @@ import AdminAppointments from "./pages/AdminAppointments";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import Settings from "./pages/Settings";
+import FeedbackPage from "./pages/FeedbackPage";
 
 import Navbar from "./components/Navbar";
 import GuestNavbar from "./components/GuestNavbar";
@@ -198,6 +199,15 @@ function AppRoutes() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/feedback"
+              element={
+                <ProtectedRoute>
+                  <FeedbackPage />
                 </ProtectedRoute>
               }
             />
