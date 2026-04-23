@@ -10,13 +10,18 @@ const REQUIRED_ENV_VARS = [
   "PORT",
   "GEMINI_API_KEY",
   "ALLOWED_ORIGINS",
+  "DATA_ENCRYPTION_KEY", // 🔐 CRITICAL: For medical data encryption
   // FIREBASE_SERVICE_ACCOUNT or local serviceAccountKey.json
 ];
 
 /**
  * List of sensitive environment variables (should never be logged)
  */
-const SENSITIVE_ENV_VARS = ["GEMINI_API_KEY", "FIREBASE_SERVICE_ACCOUNT"];
+const SENSITIVE_ENV_VARS = [
+  "GEMINI_API_KEY",
+  "FIREBASE_SERVICE_ACCOUNT",
+  "DATA_ENCRYPTION_KEY", // 🔐 CRITICAL: Never log encryption key
+];
 
 /**
  * Validate that all required environment variables are present

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { sendPasswordResetEmail } from "firebase/auth";
+import { sendPasswordResetEmail, sendEmailVerification } from "firebase/auth";
 import { auth } from "../config/firebase";
 import ReCAPTCHA from "react-google-recaptcha";
 
@@ -18,10 +18,14 @@ export default function Login() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetMessage, setResetMessage] = useState("");
+  const [emailNotVerified, setEmailNotVerified] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
+    setEmailNotVerified(false);
     if (!email || !password) {
       setMessage("Please fill in all fields.");
       return;
@@ -41,10 +45,28 @@ export default function Login() {
       } else if (error.code === "auth/wrong-password") {
         setMessage("Incorrect password.");
       } else if (error.code === "auth/email-not-verified") {
-        setMessage("Please verify your email before logging in.");
+        // 🔐 NEW: Offer to resend verification email
+        setEmailNotVerified(true);
+        setUnverifiedEmail(email);
+        setMessage("Email not verified. Check your inbox and verify your email to continue.");
       } else {
         setMessage(error.message || "Login failed. Try again.");
       }
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await sendEmailVerification(user);
+        setMessage("Verification email sent! Check your inbox.");
+        setEmailNotVerified(false);
+      } else {
+        setMessage("Unable to resend email. Please try logging in again.");
+      }
+    } catch (error) {
+      setMessage(`Error resending email: ${error.message}`);
     }
   };
 
@@ -122,7 +144,27 @@ export default function Login() {
       <h2>AI Health Assistant</h2>
 
       {message && (
-        <p style={{ marginBottom: "10px", color: "#d9534f" }}>{message}</p>
+        <div style={{ marginBottom: "10px" }}>
+          <p style={{ color: "#d9534f" }}>{message}</p>
+          {emailNotVerified && (
+            <button
+              onClick={handleResendVerification}
+              style={{
+                background: "#667eea",
+                color: "white",
+                border: "none",
+                padding: "8px 16px",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "14px",
+                width: "100%",
+                marginTop: "10px",
+              }}
+            >
+              Resend Verification Email
+            </button>
+          )}
+        </div>
       )}
 
       {!showForgotPassword ? (

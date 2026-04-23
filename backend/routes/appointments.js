@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
+const { auditLog, logDataAccess } = require("../middleware/auditLog");
+const { encryptFields, decryptFields } = require("../utils/encryption");
 const rateLimit = require("express-rate-limit");
-const { ADMIN_EMAILS_SET } = require("../config/adminConfig");
 
 // ─── Validation Regexes ───────────────────────────────────────────────────
 const VALIDATION = {
@@ -143,17 +144,34 @@ router.post("/", appointmentLimiter, (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    appointmentsMap.set(newAppointment.id, newAppointment);
+    // 🔐 ENCRYPT sensitive medical data (HIPAA compliance)
+    const fieldsToEncrypt = ["patientName", "phone", "notes"];
+    const encryptedAppointment = encryptFields(newAppointment, fieldsToEncrypt);
+
+    appointmentsMap.set(encryptedAppointment.id, encryptedAppointment);
+
+    // 📝 LOG appointment creation for audit trail
+    auditLog(`APPOINTMENT_CREATED`, "INFO", {
+      appointmentId: encryptedAppointment.id,
+      userId: userId,
+      hospitalName: hospitalName,
+      date: date,
+      timestamp: new Date().toISOString(),
+    });
 
     // Create admin notification
     createAdminNotification(
       `New Appointment Request: ${patientName} at ${hospitalName}`,
       `Patient: ${patientName} (${phone}) has requested an appointment on ${date} at ${time} for ${department}`,
       "appointment",
-      newAppointment.id,
+      encryptedAppointment.id,
     );
 
-    res.status(201).json(newAppointment);
+    // 📤 Decrypt before sending to client (for confirmation display)
+    const fieldsToReturn = ["patientName", "phone", "notes"];
+    const responseAppointment = decryptFields(encryptedAppointment, fieldsToReturn);
+
+    res.status(201).json(responseAppointment);
   } catch (err) {
     console.error("[Appointments POST Error]", err.message);
     res.status(500).json({ error: "Failed to create appointment" });
@@ -220,10 +238,18 @@ router.put(
  */
 router.get("/", verifyToken, verifyAdmin, (req, res) => {
   try {
+    // 📝 LOG data access for audit trail
+    logDataAccess("appointments", req.uid, req.ip);
+
     // Map preserves insertion order; sort descending by createdAt
-    const all = [...appointmentsMap.values()].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-    );
+    const all = [...appointmentsMap.values()]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map(apt => {
+        // 🔓 DECRYPT sensitive fields for admin viewing
+        const fieldsToDecrypt = ["patientName", "phone", "notes"];
+        return decryptFields(apt, fieldsToDecrypt);
+      });
+
     res.json(all);
   } catch (err) {
     console.error(err);
@@ -237,9 +263,17 @@ router.get("/", verifyToken, verifyAdmin, (req, res) => {
 router.get("/user/:uid", (req, res) => {
   try {
     const { uid } = req.params;
+
+    // 📝 LOG data access for audit trail
+    logDataAccess("appointments:user", uid, req.ip);
+
     const result = [];
     for (const a of appointmentsMap.values()) {
-      if (a.userId === uid) result.push(a);
+      if (a.userId === uid) {
+        // 🔓 DECRYPT sensitive fields for user viewing
+        const fieldsToDecrypt = ["patientName", "phone", "notes"];
+        result.push(decryptFields(a, fieldsToDecrypt));
+      }
     }
     res.json(result);
   } catch (err) {
@@ -253,12 +287,19 @@ router.get("/user/:uid", (req, res) => {
  */
 router.get("/hospital/:hospitalName", (req, res) => {
   try {
+    // 📝 LOG data access for audit trail
+    logDataAccess("appointments:hospital", req.params.hospitalName, req.ip);
+
     const decodedName = decodeURIComponent(
       req.params.hospitalName,
     ).toLowerCase();
     const result = [];
     for (const a of appointmentsMap.values()) {
-      if (a.hospitalName.toLowerCase() === decodedName) result.push(a);
+      if (a.hospitalName.toLowerCase() === decodedName) {
+        // 🔓 DECRYPT sensitive fields
+        const fieldsToDecrypt = ["patientName", "phone", "notes"];
+        result.push(decryptFields(a, fieldsToDecrypt));
+      }
     }
     res.json(result);
   } catch (err) {
@@ -287,6 +328,15 @@ router.put("/:id/status", verifyToken, verifyAdmin, (req, res) => {
     appointment.adminNotes = adminNotes || appointment.adminNotes;
     appointment.updatedAt = new Date().toISOString();
 
+    // 📝 LOG admin action for audit trail
+    auditLog(`APPOINTMENT_STATUS_UPDATED`, "INFO", {
+      appointmentId: id,
+      adminId: req.uid,
+      oldStatus: appointment.status,
+      newStatus: status,
+      timestamp: new Date().toISOString(),
+    });
+
     // Create user notification
     const statusMessages = {
       Approved: "Your appointment has been approved!",
@@ -303,7 +353,11 @@ router.put("/:id/status", verifyToken, verifyAdmin, (req, res) => {
       appointment.id,
     );
 
-    res.json(appointment);
+    // 🔓 DECRYPT sensitive fields before sending to client
+    const fieldsToDecrypt = ["patientName", "phone", "notes"];
+    const responseAppointment = decryptFields(appointment, fieldsToDecrypt);
+
+    res.json(responseAppointment);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update appointment status" });
