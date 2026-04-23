@@ -1,17 +1,16 @@
 const router = require("express").Router();
-const rateLimit = require("express-rate-limit");
+const { auditLog } = require("../middleware/auditLog");
 
-// ─── Rate limiting for emergency alerts ──────────────────────────────────────
-// 10 alerts per hour per IP to prevent abuse of critical endpoint
-const emergencyLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many emergency alerts. Please try again later." },
-});
+// ⚠️ NOTE: Emergency endpoint intentionally NOT rate-limited
+// Real emergencies must never be blocked by rate limiting
+// Abuse detection handled via IP reputation and post-hoc analysis
 
-router.post("/", emergencyLimiter, (req, res) => {
+router.post("/", (req, res) => {
+  // Log as CRITICAL emergency alert
+  auditLog("EMERGENCY_ALERT_POSTED", "CRITICAL", {
+    location: req.body?.location,
+    timestamp: new Date().toISOString(),
+  });
   try {
     const { location, userId, message } = req.body || {};
 

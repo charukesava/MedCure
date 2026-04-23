@@ -125,6 +125,19 @@ const getAuditLogs = (limitLines = 100) => {
 };
 
 /**
+ * Log data access (for compliance)
+ */
+const logDataAccess = (collection, userId, ip = "unknown") => {
+  auditLog(
+    `DATA_ACCESS:${collection}`,
+    userId,
+    ip,
+    `Accessed collection: ${collection}`,
+    0, // INFO level
+  );
+};
+
+/**
  * Clear audit logs (use with caution)
  */
 const clearAuditLogs = () => {
@@ -152,6 +165,7 @@ module.exports = {
   logAuthFailure,
   logAdminAction,
   logSuspiciousActivity,
+  logDataAccess, // 🆕 Export data access logger
   getAuditLogs,
   clearAuditLogs,
 };
