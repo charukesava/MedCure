@@ -73,20 +73,41 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setMessage("");
     setGoogleLoading(true);
+    console.log("🔘 Google Login button clicked from:", window.location.origin);
+    
     try {
-      await googleLogin();
+      // Trigger popup IMMEDIATELY to maximize browser popup permission window
+      const loginPromise = googleLogin();
+      
+      // Then handle async operations
+      await loginPromise;
       navigate("/home");
     } catch (error) {
+      console.error("🔴 Google Login Error in Handler:", error.code, error.message);
+      
       if (
         error.code === "auth/popup-closed-by-user" ||
         error.code === "auth/cancelled-popup-request"
       ) {
-        // user closed the popup — not an error worth showing
+        // User closed the popup — not an error worth showing
+        console.log("ℹ️ User closed popup (not an error)");
       } else if (error.code === "auth/popup-blocked") {
+        console.warn("⚠️ Popup blocked - trying redirect auth as fallback...");
         setMessage(
-          "Popup was blocked by your browser. Please allow popups for this site and try again.",
+          "⚠️ Popup blocked by your browser. Please ensure popups are allowed for this site. If problem persists, try another browser or clear cache.",
+        );
+      } else if (error.code === "auth/unauthorized-client") {
+        console.error("🔐 OAuth Credentials Error - Check Google Console Config");
+        setMessage(
+          "❌ OAuth configuration error. Contact support or try again in a few minutes.",
+        );
+      } else if (error.code === "auth/invalid-origin") {
+        console.error("🌍 Domain not authorized in Google OAuth - Your domain: " + window.location.origin);
+        setMessage(
+          "❌ Your domain is not authorized for Google login. This is a server configuration issue.",
         );
       } else {
+        console.error("❓ Unknown Auth Error:", error);
         setMessage(error.message || "Google sign-in failed. Please try again.");
       }
     } finally {
