@@ -64,8 +64,24 @@ export function AuthProvider({ children }) {
 
   // 🔵 GOOGLE LOGIN
   const googleLogin = async () => {
+    console.log("🔵 Starting Google Login...");
+    console.log("📍 Current origin:", window.location.origin);
+    console.log("🔐 Firebase auth domain config:", auth.currentUser?.tenantId || "No tenant");
+    
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    
+    try {
+      const result = await signInWithPopup(auth, provider);
+      console.log("✅ Google Login Success:", result.user.email);
+      return result;
+    } catch (error) {
+      console.error("❌ GOOGLE AUTH ERROR:", {
+        code: error.code,
+        message: error.message,
+        customData: error.customData,
+      });
+      throw error;
+    }
   };
 
   // 🚪 LOGOUT
