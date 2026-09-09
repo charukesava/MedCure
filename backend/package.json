@@ -14,7 +14,7 @@
     "express-rate-limit": "^8.5.2",
     "firebase-admin": "^13.10.0",
     "helmet": "^8.2.0",
-    "multer": "1.4.5-lts.1",
+    "multer": "2.3.0",
     "uuid": "^9.0.0"
   }
 }
